@@ -50,16 +50,7 @@ class Proxy:
     self.connect(port)
     logging.debug('Exited connect function')
     while True:
-      """
-      ss = select.select
-      inputready, outputready, errorready = ss(self.input_list, [], [])
-      for self.s in inputready:
-        if self.s == self.client:
-          self.connect(port)
-          logging.debug('Exited connect function')
-          break
-        
-    """    
+ 
       """ After connected, anything received gets passed or closes """
       logging.debug('looking for data')
       #self.data = self.s.recv(1024)
@@ -81,17 +72,9 @@ class Proxy:
         break
       else:
         self.pass_data(self.client_data, 0)
-          
-        
-        
-        """
-        if self.data == "":
-          self.close()
-          break
-        else:
-          self.pass_data()
-        """
-    
+
+
+
   """ Connects proxy to client. Gets server from client request. Connects to server"""
   def connect(self, server_port):
     """ Connect to client """
@@ -133,12 +116,7 @@ class Proxy:
       logging.info('Server -> Client: ' + data)
       self.client_socket.send(data)
     
-    
-    """
-    data = self.data
-    logging.info(data)
-    self.channel[self.s].send(data)
-    """
+
     
     
   def close(self, source):
@@ -154,27 +132,6 @@ class Proxy:
   def get_host_from_header(self, header):
     host = header.split("\r\n")[1].split(" ")[1]
     return host
-    
-    
-"""
-  def close(self):
-    logging.info('%s has disconnected', self.getpeername())
-    #Delete from list
-    self.input_list.remove(self.s)
-    self.input_list.remove(self.channel[self.s])
-    
-    other = self.channel[self.s]
-    
-    #Close connections
-    self.channel[other].close()
-    self.channel[self.s].close()
-    
-    #Delete from channel
-    del self.channel[other]
-    del self.channel[self.s]
-
-"""
-
 
   
   
