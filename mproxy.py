@@ -6,15 +6,18 @@ __version__ = '0.1'
 __author__ = 'Vincent Chang'
 CLIENTHOST = ''
 CLIENTPORT = 57575
-__numrequests__ = -1
-
+NUM_REQUESTS = -1
+LOG_DIRECTORY = ""
+KILL_FLAG = 0
 
 import sys
 import argparse
 import logging
-import select
+import multiprocessing
 import ssl
 import socket
+
+logger = logging.getLogger(__name__)
 
 class Server:
   def __init__(self):
@@ -29,33 +32,34 @@ class Server:
       return False
 
 
-class Proxy:
-  input_list = []
-  channel = {}
+#class Proxy(multiprocessing.Process):
+class Proxy():
+  
   
   """ Initialize socket connection to client """
   def __init__(self, host, port):
     self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     #self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.client.bind((host, port))
-    logging.debug('Socket to client created - Hostname: ' + socket.gethostname())
-    logging.info('Listening for client')
+    logger.debug('Socket to client created - Hostname: ' + socket.gethostname())
+    logger.info('Listening for client')
     self.client.listen(5)               
     pass
 
   """ Adds new client to list, then starts connection """
   def start(self, port):
-    self.input_list.append(self.client)
-    # TODO: Create new log here
+    global KILL_FLAG
+    KILL_FLAG = 0                           # Reset kill flag for next instance
     self.connect(port)
-    logging.debug('Exited connect function')
+    logger.debug('Exited connect function')
     while True:
- 
+      if KILL_FLAG == 1:
+        
+        break
       """ After connected, anything received gets passed or closes """
-      logging.debug('looking for data')
-      #self.data = self.s.recv(1024)
+      logger.debug('looking for data')
       self.server_data = self.server_socket.recv(1024)
-      logging.debug('got data from server')
+      logger.debug('got data from server')
       
       if self.server_data == "":
         self.close(1)
@@ -65,7 +69,7 @@ class Proxy:
         
         
       self.client_data = self.client_socket.recv(1024)
-      logging.debug('got data from client')
+      logger.debug('got data from client')
       
       if self.client_data == "":
         self.close(0)
@@ -77,65 +81,71 @@ class Proxy:
 
   """ Connects proxy to client. Gets server from client request. Connects to server"""
   def connect(self, server_port):
+    global KILL_FLAG
     """ Connect to client """
     self.client_socket, self.client_address = self.client.accept()               # Establish connection with client
-    logging.debug('Connected to client: %s', self.client_address)
+    logger.debug('Connected to client: %s', self.client_address)
     
     """ Get first HTTP request line from client """
     request_text = self.client_socket.recv(1024)                                 # First thing should be request line
-    logging.info(request_text)
+    #logger.debug(request_text)
     
     """ Check client connection """
     if request_text == "":
       self.client_socket.close()
-      logging.error("Can't establish connection with client. Closing connection.")
+      logger.error("Can't establish connection with client. Closing connection.")
     else:
       """ Connect to server """
       self.server_hostname = self.get_host_from_header(request_text)
+      self.create_log(self.client_address, self.server_hostname)
       self.server_socket = Server().start(self.server_hostname, server_port)
-    
+      
     """ Check server connection """
     if self.server_socket:
-      logging.debug('Connected to server: %s', self.server_hostname)
-      self.channel[self.client_socket] = self.server_socket
-      self.channel[self.server_socket] = self.client_socket
+      logger.info('Connected to server: %s', self.server_hostname)
+      """ Send client's inital request to server """
+      self.server_socket.send(request_text) 
+      logger.debug('Sent request text to server')
     else:
-      logging.error("Can't establish connection with server: %s:%s", self.server_hostname, server_port)
-      logging.error("Closing connection with client side: %s", self.client_address)
+      logger.error("Can't establish connection with server: %s:%s", self.server_hostname, server_port)
+      logger.error("Closing connection with client side: %s", self.client_address)
       self.client_socket.close()
+      KILL_FLAG = 1
+
+  def create_log(self, client_address, server_address):
+    global NUM_REQUESTS
+    NUM_REQUESTS = NUM_REQUESTS + 1
     
-    """ Send client's inital request to server """
-    self.server_socket.send(request_text) 
-    logging.debug('Sent request text to server')
+    new_log_file = logging.FileHandler(LOG_DIRECTORY + str(NUM_REQUESTS) + '_' + client_address[0] + '_' + str(server_address) + '.log')
+    formatter = logging.Formatter('(%(asctime)s)(pid:%(process)d) %(levelname)s: %(message)s')
+    new_log_file.setFormatter(formatter)
+    logger.addHandler(new_log_file)
+    logger.setLevel(logging.DEBUG)
+  
 
   def pass_data(self, data, source):
     if source == 0:
-      logging.info('Client -> Server: ' + data)
+      logger.info('Client -> Server: ' + data)
       self.server_socket.send(data)
     else:
-      logging.info('Server -> Client: ' + data)
+      logger.info('Server -> Client: ' + data)
       self.client_socket.send(data)
-    
-
-    
     
   def close(self, source):
     if source == 1:
-      logging.info('Server %s has disconnected', self.server_hostname)
-      logging.info('Closing connection with client: %s', self.client_address)
+      logger.info('Server %s has disconnected', self.server_hostname)
+      logger.info('Closing connection with client: %s', self.client_address)
       self.client_socket.close()
     else:
-      logging.info('Client %s has disconnected', self.client_address)
-      logging.info('Closing connection with server: %s', self.server_hostname)
+      logger.info('Client %s has disconnected', self.client_address)
+      logger.info('Closing connection with server: %s', self.server_hostname)
       self.server_socket.close()
   
   def get_host_from_header(self, header):
     host = header.split("\r\n")[1].split(" ")[1]
     return host
 
-  
-  
-      
+
 
 
 def main():
@@ -149,7 +159,7 @@ def main():
   parser.add_argument('-l', '--log', nargs=1, help='directory to place logs')
   args = parser.parse_args()
 
-  #print args
+  print args
   
   if args.port is None:
     print "Port is required."
@@ -161,24 +171,32 @@ def main():
     #import os.path
     #os.path.isfile(fname) 
   #TODO: figure out how to do log directory (args.log)
-  logging.basicConfig(filename='EXP.log',level=logging.DEBUG, format='(%(asctime)s)(pid:%(process)d) %(levelname)s: %(message)s')
   
   
   # Demarshall
   server_port = args.port                # try another port if occupied
   num_workers = args.numworker
   timeout = args.timeout
-  logging.debug('Inputs: Port - %i || Timeout - %i || NumWorkers - %i || Log - %s', server_port, num_workers, timeout, args.log)
+  
+  if args.log is not None:
+    global LOG_DIRECTORY
+    LOG_DIRECTORY = args.log + '/'
+  
+  print LOG_DIRECTORY
+   
+    
+  #logger = logging.getLogger('mproxy')
 
   proxy = Proxy(CLIENTHOST, CLIENTPORT)
-  try:
-    proxy.start(server_port)
-    pass
-  except KeyboardInterrupt:
-    print 'Ctrl C - Stopping server'
-    sys.exit(1)
+  while True:
+    try:
+      proxy.start(server_port)
+      pass
+    except KeyboardInterrupt:
+      print 'Ctrl C - Stopping server'
+      break
 
-  print "End of main"
+  print "end of main"
   
   
 if __name__ == '__main__':
