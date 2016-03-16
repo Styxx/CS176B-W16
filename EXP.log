@@ -1,0 +1,107 @@
+(2016-03-16 02:13:06,517)(pid:11505) DEBUG: Inputs: Port - 6000 || Timeout - 10 || NumWorkers - -1 || Log - None
+(2016-03-16 02:13:06,518)(pid:11505) DEBUG: Socket to client created - Hostname: styxx-cs176-lab3-2731309
+(2016-03-16 02:13:06,518)(pid:11505) INFO: Listening for client
+(2016-03-16 02:13:21,650)(pid:11505) DEBUG: Connected to client: ('172.17.225.147', 39866)
+(2016-03-16 02:13:21,650)(pid:11505) INFO: GET /who/ken/trust.html HTTP/1.1
+Host: styxx-cs176-lab3-2731309
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Accept: text/html;q=0.9,text/plain
+
+
+(2016-03-16 02:13:21,650)(pid:11505) DEBUG: Socket to server created
+(2016-03-16 02:13:21,651)(pid:11505) DEBUG: Connected to server: styxx-cs176-lab3-2731309
+(2016-03-16 02:13:21,652)(pid:11505) DEBUG: Sent request text to server
+(2016-03-16 02:13:21,652)(pid:11505) DEBUG: Exited connect function
+(2016-03-16 02:13:21,652)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,652)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,652)(pid:11505) INFO: Server -> Client: GET /who/ken/trust.html HTTP/1.1
+Host: styxx-cs176-lab3-2731309
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Accept: text/html;q=0.9,text/plain
+
+
+(2016-03-16 02:13:21,652)(pid:11505) DEBUG: got data from client
+(2016-03-16 02:13:21,652)(pid:11505) INFO: Client -> Server: More data!
+(2016-03-16 02:13:21,653)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,653)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,653)(pid:11505) INFO: Server -> Client: More data!
+(2016-03-16 02:13:21,656)(pid:11505) DEBUG: got data from client
+(2016-03-16 02:13:21,656)(pid:11505) INFO: Client -> Server: More data!
+(2016-03-16 02:13:21,657)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,657)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,657)(pid:11505) INFO: Server -> Client: More data!
+(2016-03-16 02:13:21,657)(pid:11505) DEBUG: got data from client
+(2016-03-16 02:13:21,657)(pid:11505) INFO: Client -> Server: More data!
+(2016-03-16 02:13:21,657)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,657)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,658)(pid:11505) INFO: Server -> Client: More data!
+(2016-03-16 02:13:21,658)(pid:11505) DEBUG: got data from client
+(2016-03-16 02:13:21,658)(pid:11505) INFO: Client -> Server: More data!
+(2016-03-16 02:13:21,658)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,658)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,658)(pid:11505) INFO: Server -> Client: More data!
+(2016-03-16 02:13:21,659)(pid:11505) DEBUG: got data from client
+(2016-03-16 02:13:21,659)(pid:11505) INFO: Client -> Server: More data!
+(2016-03-16 02:13:21,661)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,661)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,661)(pid:11505) INFO: Server -> Client: More data!
+(2016-03-16 02:13:21,662)(pid:11505) DEBUG: got data from client
+(2016-03-16 02:13:21,662)(pid:11505) INFO: Client -> Server: More data!
+(2016-03-16 02:13:21,662)(pid:11505) DEBUG: looking for data
+(2016-03-16 02:13:21,663)(pid:11505) DEBUG: got data from server
+(2016-03-16 02:13:21,663)(pid:11505) INFO: Server %s has disconnected
+(2016-03-16 02:13:21,663)(pid:11505) INFO: Closing connection with client: ('172.17.225.147', 39866)
+(2016-03-16 02:13:21,743)(pid:11543) DEBUG: Inputs: Port - 6000 || Timeout - 10 || NumWorkers - -1 || Log - None
+(2016-03-16 02:14:30,311)(pid:11731) DEBUG: Inputs: Port - 6000 || Timeout - 10 || NumWorkers - -1 || Log - None
+(2016-03-16 02:14:30,311)(pid:11731) DEBUG: Socket to client created - Hostname: styxx-cs176-lab3-2731309
+(2016-03-16 02:14:30,311)(pid:11731) INFO: Listening for client
+(2016-03-16 02:14:36,717)(pid:11731) DEBUG: Connected to client: ('172.17.225.147', 41336)
+(2016-03-16 02:14:36,717)(pid:11731) INFO: GET /who/ken/trust.html HTTP/1.1
+Host: styxx-cs176-lab3-2731309
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Accept: text/html;q=0.9,text/plain
+
+
+(2016-03-16 02:14:36,717)(pid:11731) DEBUG: Socket to server created
+(2016-03-16 02:14:36,718)(pid:11731) DEBUG: Connected to server: styxx-cs176-lab3-2731309
+(2016-03-16 02:14:36,718)(pid:11731) DEBUG: Sent request text to server
+(2016-03-16 02:14:36,718)(pid:11731) DEBUG: Exited connect function
+(2016-03-16 02:14:36,719)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,719)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,719)(pid:11731) INFO: Server -> Client: GET /who/ken/trust.html HTTP/1.1
+Host: styxx-cs176-lab3-2731309
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Accept: text/html;q=0.9,text/plain
+
+
+(2016-03-16 02:14:36,719)(pid:11731) DEBUG: got data from client
+(2016-03-16 02:14:36,719)(pid:11731) INFO: Client -> Server: More data!
+(2016-03-16 02:14:36,719)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,720)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,720)(pid:11731) INFO: Server -> Client: More data!
+(2016-03-16 02:14:36,720)(pid:11731) DEBUG: got data from client
+(2016-03-16 02:14:36,720)(pid:11731) INFO: Client -> Server: More data!
+(2016-03-16 02:14:36,720)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,720)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,721)(pid:11731) INFO: Server -> Client: More data!
+(2016-03-16 02:14:36,721)(pid:11731) DEBUG: got data from client
+(2016-03-16 02:14:36,721)(pid:11731) INFO: Client -> Server: More data!
+(2016-03-16 02:14:36,721)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,721)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,721)(pid:11731) INFO: Server -> Client: More data!
+(2016-03-16 02:14:36,722)(pid:11731) DEBUG: got data from client
+(2016-03-16 02:14:36,722)(pid:11731) INFO: Client -> Server: More data!
+(2016-03-16 02:14:36,722)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,740)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,740)(pid:11731) INFO: Server -> Client: More data!
+(2016-03-16 02:14:36,741)(pid:11731) DEBUG: got data from client
+(2016-03-16 02:14:36,741)(pid:11731) INFO: Client -> Server: More data!
+(2016-03-16 02:14:36,741)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,742)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,742)(pid:11731) INFO: Server -> Client: More data!
+(2016-03-16 02:14:36,742)(pid:11731) DEBUG: got data from client
+(2016-03-16 02:14:36,742)(pid:11731) INFO: Client -> Server: More data!
+(2016-03-16 02:14:36,743)(pid:11731) DEBUG: looking for data
+(2016-03-16 02:14:36,743)(pid:11731) DEBUG: got data from server
+(2016-03-16 02:14:36,743)(pid:11731) INFO: Server styxx-cs176-lab3-2731309 has disconnected
+(2016-03-16 02:14:36,743)(pid:11731) INFO: Closing connection with client: ('172.17.225.147', 41336)
