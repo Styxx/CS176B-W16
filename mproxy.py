@@ -4,9 +4,12 @@ __version__ = '0.1'
 __author__ = 'Vincent Chang'
 CLIENTHOST = ''
 CLIENTPORT = 57575
+TIMEOUT = 0
 NUM_REQUESTS = -1
 LOG_DIRECTORY = ""
 KILL_FLAG = 0
+S_EMPTY = 0
+C_EMPTY = 0
 
 import sys
 import argparse
@@ -47,42 +50,66 @@ class Proxy():
 
   """ Adds new client to list, then starts connection """
   def start(self):
-    global KILL_FLAG
-    KILL_FLAG = 0                           # Reset kill flag for next instance
+    global KILL_FLAG, S_EMPTY, C_EMPTY
+    
+    if KILL_FLAG == 1:
+      KILL_FLAG = 0
+      return None
+      
+    #KILL_FLAG = 0                           # Reset kill flag for next instance
     self.connect()
     logger.debug('Exited connect function')
-    while True:
-      if KILL_FLAG == 1:
-        
-        break
+    logger.debug('Kill is: ' + str(KILL_FLAG))
+    while KILL_FLAG == 0:
       """ After connected, anything received gets passed or closes """
-      logger.debug('looking for data')
-      self.server_data = self.server_socket.recv(1024)
-      logger.debug('got data from server')
+      self.server_data = "d"
       
-      if self.server_data == "":
-        self.close(1)
-        break
-      else:
-        self.pass_data(self.server_data, 1)
+      while self.server_data != "":
+        #logger.debug('looking for data')
+        self.server_data = self.server_socket.recv(1024)
+        
+        if self.server_data == "":
+          logger.debug('Empty data from server')
+          #self.close(1)
+          #KILL_FLAG = 1;
+          S_EMPTY = S_EMPTY + 1
+          break
+        else:
+          S_EMPTY = 0
+          logger.debug('Got data from server')
+          self.pass_data(self.server_data, 1)
         
         
-      self.client_data = self.client_socket.recv(1024)
-      logger.debug('got data from client')
-      
-      if self.client_data == "":
-        self.close(0)
-        break
-      else:
-        self.pass_data(self.client_data, 0)
 
+      self.client_data = "d"
+      while self.client_data != "":
+        self.client_data = self.client_socket.recv(1024)
+        
+        if self.client_data == "":
+          logger.debug('Empty data from client')
+          #self.close(0)
+          C_EMPTY = C_EMPTY + 1
+          break
+        else:
+          C_EMPTY = 0
+          logger.debug('Got data from client')
+          self.pass_data(self.client_data, 0)
+        
+        
+      if S_EMPTY > 5:
+        if C_EMPTY > 5:
+          self.close()
+      
 
 
   """ Connects proxy to client. Gets server from client request. Connects to server"""
   def connect(self):
     global KILL_FLAG
+    
     """ Connect to client """
     self.client_socket, self.client_address = self.client.accept()               # Establish connection with client
+    self.client_socket.setblocking(0)
+    self.client_socket.settimeout(10)
     logger.debug('Connected to client: %s', self.client_address)
     
     """ Get first HTTP request line from client """
@@ -98,10 +125,16 @@ class Proxy():
       return None
 
     """ Connect to server """
-    self.server_hostname, self.log_host, self.server_port = self.get_host_from_header(request_text)
-    self.create_log(self.client_address, self.log_host)
+    self.method, self.server_hostname, self.server_port = self.get_host_from_header(request_text)
+    if self.method == 'CONNECT':
+      KILL_FLAG = 1
+      return None
+      
+    self.create_log(self.client_address, self.server_hostname)
     logger.debug("Attempting to connect to server [%s] with port [%s]", self.server_hostname, self.server_port)
     self.server_socket = Server().start(self.server_hostname, self.server_port)
+    self.server_socket.setblocking(0)
+    self.server_socket.settimeout(10)     #TODO: Set to global timeout later
       
     """ Check server connection """
     if self.server_socket:
@@ -136,7 +169,16 @@ class Proxy():
     else:
       logger.info('Server -> Client: ' + data)
       self.client_socket.send(data)
-    
+  
+  def close(self):
+    global KILL_FLAG
+    logger.info("Empty data from client [%s] and server [%s]", self.client_address, self.server_hostname)
+    logger.info("Closing sockets")
+    self.client_socket.close()
+    self.server_socket.close()
+    KILL_FLAG = 1
+  
+  """
   def close(self, source):
     if source == 1:
       logger.info('Server %s has disconnected', self.server_hostname)
@@ -146,8 +188,9 @@ class Proxy():
       logger.info('Client %s has disconnected', self.client_address)
       logger.info('Closing connection with server: %s', self.server_hostname)
       self.server_socket.close()
-  
+  """
   def get_host_from_header(self, header):
+
     method = header.split("\r\n")[0].split(" ")[0]
     """
     if method == 'CONNECT':
@@ -155,17 +198,17 @@ class Proxy():
     else:
     """
     #host = header.split("\r\n")[0].split(" ")[1]#.split(":")[0]
-    log_host = header.split("\r\n")[1].split(" ")[1]
-    host = log_host
+    host = header.split("\r\n")[1].split(" ")[1]
     #port = header.split(" ")[1].split(":")[1]
     port = 80
     
-    return host, log_host, port
+    return method, host, port
 
 
 
 
 def main():
+  global KILL_FLAG
   parser = argparse.ArgumentParser (
     prog='mproxy.py'
   )
@@ -186,10 +229,11 @@ def main():
   # Demarshall
   CLIENTPORT = args.port                # try another port if occupied
   num_workers = args.numworker
-  timeout = args.timeout
+  TIMEOUT = args.timeout
   
   if args.log is not None:
     #global LOG_DIRECTORY
+    #TODO if args.log = ""
     LOG_DIRECTORY = args.log + '/'
   
   #print LOG_DIRECTORY
@@ -206,6 +250,7 @@ def main():
       #thread.daemon = True
       #thread.start()
       #print 'started thread'
+      KILL_FLAG = 0
       proxy.start()
       #multiple_results = [pool.apply_async(proxy.start, (server_port,)) for i in range(num_workers)]
       pass
