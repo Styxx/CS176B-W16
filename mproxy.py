@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# Proxy server with aid from: http://voorloopnul.com/blog/a-python-proxy-in-less-than-100-lines-of-code/
-
 __version__ = '0.1'
 __author__ = 'Vincent Chang'
 CLIENTHOST = ''
@@ -13,7 +11,8 @@ KILL_FLAG = 0
 import sys
 import argparse
 import logging
-import multiprocessing
+from multiprocessing import Pool
+import threading
 import ssl
 import socket
 
@@ -47,10 +46,10 @@ class Proxy():
     pass
 
   """ Adds new client to list, then starts connection """
-  def start(self, port):
+  def start(self):
     global KILL_FLAG
     KILL_FLAG = 0                           # Reset kill flag for next instance
-    self.connect(port)
+    self.connect()
     logger.debug('Exited connect function')
     while True:
       if KILL_FLAG == 1:
@@ -80,7 +79,7 @@ class Proxy():
 
 
   """ Connects proxy to client. Gets server from client request. Connects to server"""
-  def connect(self, server_port):
+  def connect(self):
     global KILL_FLAG
     """ Connect to client """
     self.client_socket, self.client_address = self.client.accept()               # Establish connection with client
@@ -88,26 +87,32 @@ class Proxy():
     
     """ Get first HTTP request line from client """
     request_text = self.client_socket.recv(1024)                                 # First thing should be request line
+    print request_text
     #logger.debug(request_text)
     
     """ Check client connection """
     if request_text == "":
       self.client_socket.close()
       logger.error("Can't establish connection with client. Closing connection.")
-    else:
-      """ Connect to server """
-      self.server_hostname = self.get_host_from_header(request_text)
-      self.create_log(self.client_address, self.server_hostname)
-      self.server_socket = Server().start(self.server_hostname, server_port)
+      KILL_FLAG = 1
+      return None
+
+    """ Connect to server """
+    self.server_hostname, self.log_host, self.server_port = self.get_host_from_header(request_text)
+    self.create_log(self.client_address, self.log_host)
+    logger.debug("Attempting to connect to server [%s] with port [%s]", self.server_hostname, self.server_port)
+    self.server_socket = Server().start(self.server_hostname, self.server_port)
       
     """ Check server connection """
     if self.server_socket:
       logger.info('Connected to server: %s', self.server_hostname)
       """ Send client's inital request to server """
+      logger.info('Client -> Server: ' + request_text)
       self.server_socket.send(request_text) 
       logger.debug('Sent request text to server')
+      
     else:
-      logger.error("Can't establish connection with server: %s:%s", self.server_hostname, server_port)
+      logger.error("Can't establish connection with server: %s:%s", self.server_hostname, self.server_port)
       logger.error("Closing connection with client side: %s", self.client_address)
       self.client_socket.close()
       KILL_FLAG = 1
@@ -121,6 +126,7 @@ class Proxy():
     new_log_file.setFormatter(formatter)
     logger.addHandler(new_log_file)
     logger.setLevel(logging.DEBUG)
+    logger.debug('Log created with client [%s] and server [%s]', client_address[0], str(server_address))
   
 
   def pass_data(self, data, source):
@@ -142,8 +148,19 @@ class Proxy():
       self.server_socket.close()
   
   def get_host_from_header(self, header):
-    host = header.split("\r\n")[1].split(" ")[1]
-    return host
+    method = header.split("\r\n")[0].split(" ")[0]
+    """
+    if method == 'CONNECT':
+      pass
+    else:
+    """
+    #host = header.split("\r\n")[0].split(" ")[1]#.split(":")[0]
+    log_host = header.split("\r\n")[1].split(" ")[1]
+    host = log_host
+    #port = header.split(" ")[1].split(":")[1]
+    port = 80
+    
+    return host, log_host, port
 
 
 
@@ -164,38 +181,38 @@ def main():
   if args.port is None:
     print "Port is required."
     sys.exit(1)
-    
-  
- 
-  #TODO: figure out how to do log filenames - [index]_[sourceip]_[servername]
-    #import os.path
-    #os.path.isfile(fname) 
-  #TODO: figure out how to do log directory (args.log)
   
   
   # Demarshall
-  server_port = args.port                # try another port if occupied
+  CLIENTPORT = args.port                # try another port if occupied
   num_workers = args.numworker
   timeout = args.timeout
   
   if args.log is not None:
-    global LOG_DIRECTORY
+    #global LOG_DIRECTORY
     LOG_DIRECTORY = args.log + '/'
   
-  print LOG_DIRECTORY
-   
-    
-  #logger = logging.getLogger('mproxy')
-
+  #print LOG_DIRECTORY
+  
+  """ Spawn thread pool """
+  #pool = Pool(processes=num_workers)
   proxy = Proxy(CLIENTHOST, CLIENTPORT)
+  print socket.gethostname()
   while True:
+  #while (threading.active_count() < num_workers):
+  #for i in range(1, num_workers):
     try:
-      proxy.start(server_port)
+      #thread = threading.Thread(target=proxy.start, args=(server_port,))
+      #thread.daemon = True
+      #thread.start()
+      #print 'started thread'
+      proxy.start()
+      #multiple_results = [pool.apply_async(proxy.start, (server_port,)) for i in range(num_workers)]
       pass
     except KeyboardInterrupt:
       print 'Ctrl C - Stopping server'
       break
-
+  #thread.join()
   print "end of main"
   
   
