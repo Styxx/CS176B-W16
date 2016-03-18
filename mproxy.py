@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class Server:
   def __init__(self):
     self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    logging.debug('Socket to server created')
+    logger.info('Socket to server created')
   def start(self, host, port):
     try:
       self.server.connect((host, port))
@@ -45,7 +45,7 @@ class Proxy():
     self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     #self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.client.bind((host, port))
-    logger.debug('Socket to client created - Hostname: ' + socket.gethostname())
+    logger.info('Socket to client created - Hostname: ' + socket.gethostname())
     logger.info('Listening for client')
     self.client.listen(5)               
     pass
@@ -70,25 +70,31 @@ class Proxy():
       self.server_data = "d"
       self.client_data = "d"
       while self.server_data != "":
-        logger.debug('Looking for server data')
+        logger.info('Looking for server data')
         try:
           self.server_data = self.server_socket.recv(1024)
         except socket.timeout:
           self.server_data == "d"
+        except socket.error:
+          logger.error('Server socket has been closed')
+          logger.error('Closing client connection')
+          self.client_socket.close()
+          KILL_FLAG = 1
+          
         
         if self.server_data == "" or self.server_data == "d":
-          logger.debug('Empty data from server')
+          logger.info('Empty data from server')
           #self.close(1)
           #KILL_FLAG = 1;
           S_EMPTY = S_EMPTY + 1
           break
         elif len(self.server_data) < 1024:
-          logger.debug('Smaller/last server packet')
+          logger.info('Smaller/last server packet')
           self.pass_data(self.server_data, 1)
           break
         else:
           S_EMPTY = 0
-          logger.debug('Got data from server')
+          logger.info('Got data from server')
           self.pass_data(self.server_data, 1)
           
         if S_EMPTY > 3:
@@ -98,24 +104,24 @@ class Proxy():
         
       
       while self.client_data != "":
-        logger.debug('Looking for client data')
+        logger.info('Looking for client data')
         try:
           self.client_data = self.client_socket.recv(1024)
         except socket.timeout:
           self.client_data == "d"
         
         if self.client_data == "" or self.client_data == "d":
-          logger.debug('Empty data from client')
+          logger.info('Empty data from client')
           #self.close(0)
           C_EMPTY = C_EMPTY + 1
           break
         elif len(self.client_data) < 1024:
-          logger.debug('Smaller/last client packet')
+          logger.info('Smaller/last client packet')
           self.pass_data(self.client_data, 0)
           break  
         else:
           C_EMPTY = 0
-          logger.debug('Got data from client')
+          logger.info('Got data from client')
           self.pass_data(self.client_data, 0)
         
         if C_EMPTY > 3:
@@ -139,14 +145,14 @@ class Proxy():
     self.client_socket.setblocking(0)
     self.client_socket.settimeout(5)
     logger.debug("Client timeout: %s", str(5))
-    logger.debug('Connected to client: %s', self.client_address)
+    logger.info('Connected to client: %s', self.client_address)
     
     """ Get first HTTP request line from client """
     try:
-      logger.debug("Looking for client request")
+      logger.info("Looking for client request")
       request_text = self.client_socket.recv(1024)                                # First thing should be request line
     except socket.timeout:
-      logger.debug("No client request")
+      logger.info("No client request")
       request_text = ""
     
     print request_text
@@ -166,18 +172,19 @@ class Proxy():
       return None
       
     self.create_log(self.client_address, self.server_hostname)
-    logger.debug("Attempting to connect to server [%s] with port [%s]", self.server_hostname, self.server_port)
+    logger.info("Attempting to connect to server [%s] with port [%s]", self.server_hostname, self.server_port)
     self.server_socket = Server().start(self.server_hostname, self.server_port)
-    if TIMEOUT != -1:
-      self.server_socket.setblocking(0)
-      self.server_socket.settimeout(TIMEOUT)
-    logger.debug("Server timeout: %s", str(TIMEOUT))
     
     """ Check server connection """
     if self.server_socket:
       logger.info('Connected to server: %s', self.server_hostname)
+      logger.debug('Setting server timeout.')
+      if TIMEOUT != -1:
+        self.server_socket.setblocking(0)
+        self.server_socket.settimeout(TIMEOUT)
+      logger.debug("Server timeout: %s", str(TIMEOUT))
       """ Send client's inital request to server """
-      logger.info('Client -> Server: ' + request_text)
+      logger.info('Client -> Server: \n' + request_text)
       self.server_socket.send(request_text) 
       logger.debug('Sent request text to server')
       
@@ -202,8 +209,8 @@ class Proxy():
     formatter = logging.Formatter('(%(asctime)s)(pid:%(process)d) %(levelname)s: %(message)s')
     new_log_file.setFormatter(formatter)
     logger.addHandler(new_log_file)
-    logger.setLevel(logging.DEBUG)
-    logger.debug('Log created with client [%s] and server [%s]', client_address[0], str(server_address))
+    logger.setLevel(logging.INFO)
+    logger.info('Log created with client [%s] and server [%s]', client_address[0], str(server_address))
     logger.debug('LOGDIRECTORY: ' + str(LOG_DIRECTORY) + ' kek')
     logger.debug('TIMEOUT: ' + str(TIMEOUT) + ' kekk')
     logger.debug('NUM_REQUESTS: ' + str(NUM_REQUESTS) + ' kekkkek')
