@@ -4,7 +4,7 @@ __version__ = '0.1'
 __author__ = 'Vincent Chang'
 CLIENTHOST = ''
 CLIENTPORT = 57575
-TIMEOUT = 0
+TIMEOUT = -1
 NUM_REQUESTS = -1
 LOG_DIRECTORY = ""
 KILL_FLAG = 0
@@ -16,6 +16,7 @@ import argparse
 import logging
 from multiprocessing import Pool
 import threading
+import errno
 import ssl
 import socket
 
@@ -60,69 +61,99 @@ class Proxy():
     self.connect()
     logger.debug('Exited connect function')
     logger.debug('Kill is: ' + str(KILL_FLAG))
+    #self.server_data = "d"
+    #self.client_data = "d"
+    serverE = 0
+    clientE = 0
     while KILL_FLAG == 0:
       """ After connected, anything received gets passed or closes """
-      self.server_data = "d"
       
+      self.server_data = "d"
+      self.client_data = "d"
       while self.server_data != "":
         logger.debug('Looking for server data')
-        self.server_data = self.server_socket.recv(1024)
+        try:
+          self.server_data = self.server_socket.recv(1024)
+        except socket.timeout:
+          self.server_data == "d"
         
-        if self.server_data == "":
+        if self.server_data == "" or self.server_data == "d":
           logger.debug('Empty data from server')
           #self.close(1)
           #KILL_FLAG = 1;
           S_EMPTY = S_EMPTY + 1
+          serverE = 1
           break
         elif len(self.server_data) < 1024:
-          logger.debug('Last client packet')
+          logger.debug('Smaller/last server packet')
           self.pass_data(self.server_data, 1)
           break
         else:
           S_EMPTY = 0
           logger.debug('Got data from server')
           self.pass_data(self.server_data, 1)
+          
+        if S_EMPTY > 3:
+          logger.info("Server stopped sending data. Closing connections")
+          self.close()
         
         
-
-      self.client_data = "d"
+      #logger.debug("~~~~~~~~ Point A ~~~~~~~")
+      
       while self.client_data != "":
         logger.debug('Looking for client data')
-        self.client_data = self.client_socket.recv(1024)
+        try:
+          self.client_data = self.client_socket.recv(1024)
+        except socket.timeout:
+          self.client_data == "d"
         
-        if self.client_data == "":
+        if self.client_data == "" or self.client_data == "d":
           logger.debug('Empty data from client')
           #self.close(0)
           C_EMPTY = C_EMPTY + 1
+          clientE = 1
           break
         elif len(self.client_data) < 1024:
-          logger.debug('Last client packet')
-          self.pass_data(self.client_data, 1)
+          logger.debug('Smaller/last client packet')
+          self.pass_data(self.client_data, 0)
           break  
         else:
           C_EMPTY = 0
           logger.debug('Got data from client')
           self.pass_data(self.client_data, 0)
         
-        
-      if S_EMPTY > 5:
-        if C_EMPTY > 5:
+        if C_EMPTY > 3:
+          logger.info("Client stopped sending data. Closing connections")
           self.close()
+        
+      #logger.debug("~~~~~~~~~POINT B ~~~~~~~~~~~")
+      if S_EMPTY > 3 or C_EMPTY > 3:
+        self.close()
+          
+      #if (serverE and clientE):
+      #  self.close()
       
 
 
   """ Connects proxy to client. Gets server from client request. Connects to server"""
   def connect(self):
-    global KILL_FLAG
+    global KILL_FLAG, TIMEOUT
     
     """ Connect to client """
     self.client_socket, self.client_address = self.client.accept()               # Establish connection with client
     self.client_socket.setblocking(0)
     self.client_socket.settimeout(10)
+    logger.debug("Server timeout: %s", str(10))
     logger.debug('Connected to client: %s', self.client_address)
     
     """ Get first HTTP request line from client """
-    request_text = self.client_socket.recv(1024)                                 # First thing should be request line
+    try:
+      logger.debug("Looking for client request")
+      request_text = self.client_socket.recv(1024)                                # First thing should be request line
+    except socket.timeout:
+      logger.debug("No client request")
+      request_text = ""
+    
     print request_text
     #logger.debug(request_text)
     
@@ -142,9 +173,14 @@ class Proxy():
     self.create_log(self.client_address, self.server_hostname)
     logger.debug("Attempting to connect to server [%s] with port [%s]", self.server_hostname, self.server_port)
     self.server_socket = Server().start(self.server_hostname, self.server_port)
+    if TIMEOUT != -1:
+      self.server_socket.setblocking(0)
+      self.server_socket.settimeout(TIMEOUT)
+    """ """
     self.server_socket.setblocking(0)
-    self.server_socket.settimeout(10)     #TODO: Set to global timeout later
-      
+    self.server_socket.settimeout(10)
+    logger.debug("Server timeout: %s", str(10))
+    
     """ Check server connection """
     if self.server_socket:
       logger.info('Connected to server: %s', self.server_hostname)
@@ -174,7 +210,15 @@ class Proxy():
   def pass_data(self, data, source):
     if source == 0:
       logger.info('Client -> Server: ' + data)
-      self.server_socket.send(data)
+      try:
+        self.server_socket.send(data)
+      except socket.error, e:
+        if isinstance(e.args, tuple):
+          #logger.debug("errno is %d" % e[0]
+          if e[0] == errno.EPIPE:
+            logger.error("Detected remote disconnect")
+            logger.error("Closing client connection: %s", self.client_address)
+            self.client_socket.close()
     else:
       logger.info('Server -> Client: ' + data)
       self.client_socket.send(data)
@@ -265,7 +309,6 @@ def main():
       pass
     except KeyboardInterrupt:
       print 'Ctrl C - Stopping server'
-      self.client_socket.close()
       break
   #thread.join()
   print "end of main"
