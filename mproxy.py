@@ -221,7 +221,15 @@ class Proxy():
             self.client_socket.close()
     else:
       logger.info('Server -> Client: ' + data)
-      self.client_socket.send(data)
+      try:
+        self.client_socket.send(data)
+      except socket.error, e:
+        if isinstance(e.args, tuple):
+          #logger.debug("errno is %d" % e[0]
+          if e[0] == errno.EPIPE:
+            logger.error("Detected remote disconnect")
+            logger.error("Closing server connection: %s", self.server_hostname)
+            self.server_socket.close()
   
   def close(self):
     global KILL_FLAG
