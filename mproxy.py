@@ -65,7 +65,7 @@ class Proxy():
       self.server_data = "d"
       
       while self.server_data != "":
-        #logger.debug('looking for data')
+        logger.debug('Looking for server data')
         self.server_data = self.server_socket.recv(1024)
         
         if self.server_data == "":
@@ -73,6 +73,10 @@ class Proxy():
           #self.close(1)
           #KILL_FLAG = 1;
           S_EMPTY = S_EMPTY + 1
+          break
+        elif len(self.server_data) < 1024:
+          logger.debug('Last client packet')
+          self.pass_data(self.server_data, 1)
           break
         else:
           S_EMPTY = 0
@@ -83,6 +87,7 @@ class Proxy():
 
       self.client_data = "d"
       while self.client_data != "":
+        logger.debug('Looking for client data')
         self.client_data = self.client_socket.recv(1024)
         
         if self.client_data == "":
@@ -90,6 +95,10 @@ class Proxy():
           #self.close(0)
           C_EMPTY = C_EMPTY + 1
           break
+        elif len(self.client_data) < 1024:
+          logger.debug('Last client packet')
+          self.pass_data(self.client_data, 1)
+          break  
         else:
           C_EMPTY = 0
           logger.debug('Got data from client')
@@ -256,6 +265,7 @@ def main():
       pass
     except KeyboardInterrupt:
       print 'Ctrl C - Stopping server'
+      self.client_socket.close()
       break
   #thread.join()
   print "end of main"
