@@ -51,7 +51,9 @@ class Proxy():
 
   """ Adds new client to list, then starts connection """
   def start(self):
-    global KILL_FLAG, S_EMPTY, C_EMPTY
+    global KILL_FLAG
+    global S_EMPTY
+    global C_EMPTY
     
     if KILL_FLAG == 1:
       KILL_FLAG = 0
@@ -63,8 +65,8 @@ class Proxy():
     logger.debug('Kill is: ' + str(KILL_FLAG))
     #self.server_data = "d"
     #self.client_data = "d"
-    serverE = 0
-    clientE = 0
+    #serverE = 0
+    #clientE = 0
     while KILL_FLAG == 0:
       """ After connected, anything received gets passed or closes """
       
@@ -82,7 +84,7 @@ class Proxy():
           #self.close(1)
           #KILL_FLAG = 1;
           S_EMPTY = S_EMPTY + 1
-          serverE = 1
+          #serverE = 1
           break
         elif len(self.server_data) < 1024:
           logger.debug('Smaller/last server packet')
@@ -111,7 +113,7 @@ class Proxy():
           logger.debug('Empty data from client')
           #self.close(0)
           C_EMPTY = C_EMPTY + 1
-          clientE = 1
+          #clientE = 1
           break
         elif len(self.client_data) < 1024:
           logger.debug('Smaller/last client packet')
@@ -137,12 +139,13 @@ class Proxy():
 
   """ Connects proxy to client. Gets server from client request. Connects to server"""
   def connect(self):
-    global KILL_FLAG, TIMEOUT
+    global KILL_FLAG
+    global TIMEOUT
     
     """ Connect to client """
     self.client_socket, self.client_address = self.client.accept()               # Establish connection with client
     self.client_socket.setblocking(0)
-    self.client_socket.settimeout(10)
+    self.client_socket.settimeout(5)
     logger.debug("Server timeout: %s", str(10))
     logger.debug('Connected to client: %s', self.client_address)
     
@@ -176,9 +179,6 @@ class Proxy():
     if TIMEOUT != -1:
       self.server_socket.setblocking(0)
       self.server_socket.settimeout(TIMEOUT)
-    """ """
-    self.server_socket.setblocking(0)
-    self.server_socket.settimeout(10)
     logger.debug("Server timeout: %s", str(10))
     
     """ Check server connection """
@@ -197,15 +197,24 @@ class Proxy():
 
   def create_log(self, client_address, server_address):
     global NUM_REQUESTS
+    global LOG_DIRECTORY
+    global TIMEOUT
     NUM_REQUESTS = NUM_REQUESTS + 1
     
-    new_log_file = logging.FileHandler(LOG_DIRECTORY + str(NUM_REQUESTS) + '_' + client_address[0] + '_' + str(server_address) + '.log')
+    try:
+      new_log_file = logging.FileHandler(LOG_DIRECTORY + str(NUM_REQUESTS) + '_' + client_address[0] + '_' + str(server_address))
+    except IOError:
+      print "Unable to create logfile (does the directory you specified exist?)"
+      print "Aborting"
+      sys.exit(1)
     formatter = logging.Formatter('(%(asctime)s)(pid:%(process)d) %(levelname)s: %(message)s')
     new_log_file.setFormatter(formatter)
     logger.addHandler(new_log_file)
     logger.setLevel(logging.DEBUG)
     logger.debug('Log created with client [%s] and server [%s]', client_address[0], str(server_address))
-  
+    #logger.debug('LOGDIRECTORY: ' + str(LOG_DIRECTORY) + ' kek')
+    #logger.debug('TIMEOUT: ' + str(TIMEOUT) + ' kekk')
+    #logger.debug('NUM_REQUESTS: ' + str(NUM_REQUESTS) + ' kekkkek')
 
   def pass_data(self, data, source):
     if source == 0:
@@ -270,6 +279,8 @@ class Proxy():
 
 def main():
   global KILL_FLAG
+  global TIMEOUT
+  global LOG_DIRECTORY
   parser = argparse.ArgumentParser (
     prog='mproxy.py'
   )
@@ -277,7 +288,7 @@ def main():
   parser.add_argument('-p', '--port', nargs='?', type=int, help='port number. if occupied, tries another')
   parser.add_argument('-n', '--numworker', nargs='?', type=int, default='10', help='number of workers used for handling concurent requests. Default: 10')
   parser.add_argument('-t', '--timeout', nargs='?', type=int, default='-1', help='time to wait before giving up on a response from server. Default: -1 (infinite)')
-  parser.add_argument('-l', '--log', nargs=1, help='directory to place logs')
+  parser.add_argument('-l', '--log', nargs=1, help='directory to place logs (directory must preexist)')
   args = parser.parse_args()
 
   print args
@@ -292,17 +303,28 @@ def main():
   num_workers = args.numworker
   TIMEOUT = args.timeout
   
+  print str(args.log)
+  
+  if args.log[0] is '':
+    args.log = None
+ 
   if args.log is not None:
     #global LOG_DIRECTORY
     #TODO if args.log = ""
-    LOG_DIRECTORY = args.log + '/'
+    LOG_DIRECTORY = str(args.log[0]) + '/'
   
-  #print LOG_DIRECTORY
+  
+  #logger.debug("Log directory: " + LOG_DIRECTORY)
+  print LOG_DIRECTORY
+  print TIMEOUT
   
   """ Spawn thread pool """
   #pool = Pool(processes=num_workers)
+  
   proxy = Proxy(CLIENTHOST, CLIENTPORT)
-  print socket.gethostname()
+  #print socket.gethostname()
+  
+  
   while True:
   #while (threading.active_count() < num_workers):
   #for i in range(1, num_workers):
@@ -313,6 +335,7 @@ def main():
       #print 'started thread'
       KILL_FLAG = 0
       proxy.start()
+      #pool.apply_async(proxy.start, (server_port,))
       #multiple_results = [pool.apply_async(proxy.start, (server_port,)) for i in range(num_workers)]
       pass
     except KeyboardInterrupt:
